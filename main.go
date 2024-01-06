@@ -8,7 +8,8 @@ import (
 	"os"
 
 	"encoding/json"
-
+	"time"
+	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 )
 
@@ -60,28 +61,115 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(res)
-	fmt.Println(res.Status)
-	fmt.Println("")
-	fmt.Println(string(body))
-
 	portfolioList := []Portfolio{}
 	err = json.Unmarshal(body, &portfolioList)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// save body to file json
-	f, err := os.Create("private/data.json")
+	// Sort portfolio by Ppl
+
+	// read from private/data.json file and unmarshal into portfolioList
+
+
+	// today := time.Now().Format("YYMMDD")
+	today := time.Now().Format("060102")
+	
+	fileName := "data-" + today + ".json"
+	f, err := os.Open("private/" + fileName)
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
 
-	err = json.NewEncoder(f).Encode(portfolioList)
+	// portfolioList := []Portfolio{}
+	err = json.NewDecoder(f).Decode(&portfolioList)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer f.Close()
+	sortPortfolioByPpl(portfolioList)
+	// Print portfolio with Ticker, Current Price, and Ppl (Ppl displayed in yellow)
+	for _, p := range portfolioList {
+		fmt.Printf("%s  \t  %.2f \t", p.Ticker, p.CurrentPrice)
+		if p.Ppl > 0 {
+			color.Set(color.FgGreen)
+		} else if p.Ppl < 0 {
+			color.Set(color.FgRed)
+		} else {
+			color.Set(color.FgWhite)
+		}
+		fmt.Printf("Ppl: £%.2f\n", p.Ppl)
+		color.Unset() // Resets to default colors
 
+	}
+
+	fmt.Printf("Total Ppl: $%.2f\n", sumPpl(portfolioList))
+	// save body to file json
+	f2, err2 := os.Create("private/"+fileName)
+	if err2 != nil {
+		panic(err2)
+	}
+
+	err2 = json.NewEncoder(f2).Encode(portfolioList)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+
+	defer f2.Close()
+}
+
+// Calculate the sum of Ppl values in the portfolioList
+func sumPpl(portfolioList []Portfolio) float64 {
+	sum := 0.0
+	for _, p := range portfolioList {
+		sum += p.Ppl
+	}
+	return sum
+}
+
+// Sort portfolio by Ppl
+func sortPortfolioByPpl(portfolio []Portfolio) {
+	if len(portfolio) <= 1 {
+		return
+	}
+
+	mid := len(portfolio) / 2
+	left := make([]Portfolio, mid)
+	right := make([]Portfolio, len(portfolio)-mid)
+
+	copy(left, portfolio[:mid])
+	copy(right, portfolio[mid:])
+
+	sortPortfolioByPpl(left)
+	sortPortfolioByPpl(right)
+
+	merge(portfolio, left, right)
+}
+
+func merge(portfolio, left, right []Portfolio) {
+	i, j, k := 0, 0, 0
+
+	for i < len(left) && j < len(right) {
+		if left[i].Ppl > right[j].Ppl {
+			portfolio[k] = left[i]
+			i++
+		} else {
+			portfolio[k] = right[j]
+			j++
+		}
+		k++
+	}
+
+	for i < len(left) {
+		portfolio[k] = left[i]
+		i++
+		k++
+	}
+
+	for j < len(right) {
+		portfolio[k] = right[j]
+		j++
+		k++
+	}
 }
