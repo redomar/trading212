@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	// "io"
+	"io"
 	"log"
-	// "net/http"
+	"net/http"
 	"os"
 
 	"encoding/json"
-
+	"time"
 	"github.com/fatih/color"
-	// "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 )
 
 type Asset struct {
@@ -35,48 +35,54 @@ type Portfolio struct {
 
 func main() {
 
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file")
-	// }
-	// reqUrl := "https://live.trading212.com/api/v0/equity/portfolio"
-	// req, err := http.NewRequest("GET", reqUrl, nil)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	reqUrl := "https://live.trading212.com/api/v0/equity/portfolio"
+	req, err := http.NewRequest("GET", reqUrl, nil)
+	if err != nil {
+		panic(err)
+	}
 
-	// apiKey := os.Getenv("TRADING212_API_KEY")
-	// if apiKey == "" {
-	// 	log.Fatal("API key not set in .env file")
-	// }
+	apiKey := os.Getenv("TRADING212_API_KEY")
+	if apiKey == "" {
+		log.Fatal("API key not set in .env file")
+	}
 
-	// req.Header.Add("Authorization", apiKey)
-	// res, err := http.DefaultClient.Do(req)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer res.Body.Close()
-	// body, err := io.ReadAll(res.Body)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	req.Header.Add("Authorization", apiKey)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
 
-	// portfolioList := []Portfolio{}
-	// err = json.Unmarshal(body, &portfolioList)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	portfolioList := []Portfolio{}
+	err = json.Unmarshal(body, &portfolioList)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Sort portfolio by Ppl
 
 	// read from private/data.json file and unmarshal into portfolioList
-	f, err := os.Open("private/data.json")
+
+
+	// today := time.Now().Format("YYMMDD")
+	today := time.Now().Format("060102")
+	
+	fileName := "data-" + today + ".json"
+	f, err := os.Open("private/" + fileName)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
 
-	portfolioList := []Portfolio{}
+	// portfolioList := []Portfolio{}
 	err = json.NewDecoder(f).Decode(&portfolioList)
 	if err != nil {
 		log.Fatal(err)
@@ -99,18 +105,18 @@ func main() {
 	}
 
 	fmt.Printf("Total Ppl: $%.2f\n", sumPpl(portfolioList))
-	// // save body to file json
-	// f, err := os.Create("private/data.json")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	// save body to file json
+	f2, err2 := os.Create("private/"+fileName)
+	if err2 != nil {
+		panic(err2)
+	}
 
-	// err = json.NewEncoder(f).Encode(portfolioList)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	err2 = json.NewEncoder(f2).Encode(portfolioList)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
 
-	// defer f.Close()
+	defer f2.Close()
 }
 
 // Calculate the sum of Ppl values in the portfolioList
